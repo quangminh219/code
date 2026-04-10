@@ -1,0 +1,267 @@
+import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:math';
+
+void main() {
+  runApp(AppMoi());
+}
+
+class Task {
+  String name;
+  String location;
+  DateTime time;
+  String type;
+
+  Task(this.name, this.location, this.time, this.type);
+}
+
+class AppMoi extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: TrangChinh(),
+    );
+  }
+}
+
+class TrangChinh extends StatefulWidget {
+  @override
+  _TrangChinhState createState() => _TrangChinhState();
+}
+
+class _TrangChinhState extends State<TrangChinh> {
+  List<Task> tasks = [];
+  Timer? timer;
+  Random random = Random();
+
+  List<Color> colors = [
+    Colors.blue.shade200,
+    Colors.pink.shade200,
+    Colors.orange.shade200,
+    Colors.green.shade200,
+    Colors.purple.shade200,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+
+    timer = Timer.periodic(Duration(seconds: 1), (_) {
+      final now = DateTime.now();
+
+      for (var t in tasks) {
+        if ((now.difference(t.time).inSeconds).abs() < 1) {
+          showReminder(t);
+        }
+      }
+    });
+  }
+
+  void showReminder(Task t) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text("🔔 Nhắc việc"),
+        content: Text("${t.name}\n⏰ Đến giờ rồi!"),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("OK"))
+        ],
+      ),
+    );
+  }
+
+  void addTask() async {
+    String name = "";
+    String location = "";
+    String type = "bell";
+    DateTime? selected;
+
+    await showDialog(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          return AlertDialog(
+            title: Text("➕ Thêm công việc"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  decoration: InputDecoration(labelText: "Tên"),
+                  onChanged: (v) => name = v,
+                ),
+                TextField(
+                  decoration: InputDecoration(labelText: "Địa điểm"),
+                  onChanged: (v) => location = v,
+                ),
+                ElevatedButton(
+                  child: Text("Chọn ngày giờ"),
+                  onPressed: () async {
+                    DateTime? d = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+
+                    if (d != null) {
+                      TimeOfDay? t = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.now(),
+                      );
+
+                      if (t != null) {
+                        selected = DateTime(
+                            d.year, d.month, d.day, t.hour, t.minute);
+                        setStateDialog(() {});
+                      }
+                    }
+                  },
+                ),
+                if (selected != null)
+                  Text("⏰ ${selected.toString().substring(0, 16)}"),
+                DropdownButton<String>(
+                  value: type,
+                  items: [
+                    DropdownMenuItem(
+                        value: "bell", child: Text("🔔 Chuông")),
+                    DropdownMenuItem(
+                        value: "email", child: Text("📧 Email")),
+                  ],
+                  onChanged: (v) {
+                    setStateDialog(() {
+                      type = v!;
+                    });
+                  },
+                )
+              ],
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  if (selected != null) {
+                    setState(() {
+                      tasks.add(Task(name, location, selected!, type));
+                    });
+                    Navigator.pop(context);
+                  }
+                },
+                child: Text("Lưu"),
+              )
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget taskCard(Task t) {
+    Color bg = colors[random.nextInt(colors.length)];
+
+    IconData icon =
+        t.type == "bell" ? Icons.notifications_active : Icons.email;
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 15),
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(25),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  t.name,
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold),
+                ),
+              )
+            ],
+          ),
+          SizedBox(height: 10),
+          Text("📍 ${t.location}"),
+          Text("⏰ ${t.time.toString().substring(0, 16)}"),
+        ],
+      ),
+    );
+  }
+
+  String today() {
+    DateTime now = DateTime.now();
+    return "${now.day}/${now.month}/${now.year}";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+
+      body: SafeArea(
+        child: Column(
+          children: [
+            // HEADER
+            Container(
+              padding: EdgeInsets.all(20),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.blue, Colors.purple],
+                ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Xin chào 👋",
+                      style: TextStyle(
+                          color: Colors.white, fontSize: 18)),
+                  Text(
+                    today(),
+                    style: TextStyle(
+                        color: Colors.white70, fontSize: 14),
+                  ),
+                  SizedBox(height: 10),
+                  Text("Danh sách công việc",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.all(15),
+                child: tasks.isEmpty
+                    ? Center(child: Text("Chưa có công việc"))
+                    : ListView(
+                        children:
+                            tasks.map((e) => taskCard(e)).toList(),
+                      ),
+              ),
+            )
+          ],
+        ),
+      ),
+
+      floatingActionButton: FloatingActionButton(
+        onPressed: addTask,
+        child: Icon(Icons.add),
+        backgroundColor: Colors.purple,
+      ),
+    );
+  }
+}
